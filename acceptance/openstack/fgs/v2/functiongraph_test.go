@@ -81,7 +81,7 @@ func TestFunctionGraphLifecycle(t *testing.T) {
 			MaxInstanceNum: 200,
 		})
 	th.AssertNoErr(t, err)
-	th.AssertEquals(t, updateFuncInstance.StrategyConfig.Concurrency, 200)
+	th.AssertEquals(t, *updateFuncInstance.StrategyConfig.Concurrency, 200)
 
 	// API not registered
 	// err = function.UpdateStatus(client, funcUrn, "true")
@@ -137,7 +137,7 @@ func createFunctionGraph(t *testing.T, client *golangsdk.ServiceClient) (*functi
 		Package:    "default",
 		Runtime:    "Python3.9",
 		Timeout:    200,
-		Handler:    "index.py",
+		Handler:    "index.handler",
 		MemorySize: 512,
 		CodeType:   "zip",
 		CodeURL:    "https://regr-func-graph.obs.eu-de.otc.t-systems.com/index.py",

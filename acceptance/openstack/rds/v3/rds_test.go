@@ -2,6 +2,7 @@ package v3
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -260,8 +261,8 @@ func TestRdsLifecycle(t *testing.T) {
 	log, err := logs.ListErrorLog(client, logs.DbErrorlogOpts{
 		InstanceId: rds.Id,
 		Limit:      "1",
-		StartDate:  time.Now().AddDate(0, 0, -1).Format("2006-01-02T15:04:05"),
-		EndDate:    time.Now().Format("2006-01-02T15:04:05"),
+		StartDate:  time.Now().UTC().AddDate(0, 0, -1).Format("2006-01-02T15:04:05-0700"),
+		EndDate:    time.Now().UTC().Format("2006-01-02T15:04:05-0700"),
 	})
 	th.AssertNoErr(t, err)
 	tools.PrintResource(t, log)
@@ -269,8 +270,8 @@ func TestRdsLifecycle(t *testing.T) {
 	slowLog, err := logs.ListSlowLog(client, logs.DbSlowLogOpts{
 		InstanceId: rds.Id,
 		Limit:      "1",
-		StartDate:  time.Now().AddDate(0, 0, -1).Format("2006-01-02T15:04:05"),
-		EndDate:    time.Now().Format("2006-01-02T15:04:05"),
+		StartDate:  time.Now().UTC().AddDate(0, 0, -1).Format("2006-01-02T15:04:05-0700"),
+		EndDate:    time.Now().UTC().Format("2006-01-02T15:04:05-0700"),
 	})
 	th.AssertNoErr(t, err)
 	tools.PrintResource(t, slowLog)
@@ -522,4 +523,93 @@ func TestRdsAutoScaling(t *testing.T) {
 	scaling, err := instances.GetAutoScaling(client, rds.Id)
 	th.AssertNoErr(t, err)
 	tools.PrintResource(t, scaling)
+}
+
+func TestRdsTimeZone(t *testing.T) {
+	if os.Getenv("RUN_RDS_LIFECYCLE") == "" {
+		t.Skip("too slow to run in zuul")
+	}
+
+	client, err := clients.NewRdsV3()
+	th.AssertNoErr(t, err)
+
+	cc, err := clients.CloudAndClient()
+	th.AssertNoErr(t, err)
+
+	t.Log("Creating RDS instance with time_zone UTC+08:00")
+
+	// Create RDSv3 instance with time_zone
+	rds := CreateMySqlRDS(t, client, cc.RegionName)
+	t.Cleanup(func() { DeleteRDS(t, client, rds.Id) })
+
+	if err := instances.WaitForStateAvailable(client, 600, rds.Id); err != nil {
+		t.Fatalf("Status available wasn't present")
+	}
+
+	t.Log("Verifying time_zone is set correctly in instance details")
+
+	instanceList, err := instances.List(client, instances.ListOpts{
+		Id: rds.Id,
+	})
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, len(instanceList.Instances), 1)
+	th.AssertEquals(t, instanceList.Instances[0].TimeZone, "UTC+01:00")
+}
+
+func TestRdsUpgradeVersion(t *testing.T) {
+	if os.Getenv("RUN_RDS_LIFECYCLE") == "" {
+		t.Skip("new RDS have latest minor versions")
+	}
+
+	client, err := clients.NewRdsV3()
+	th.AssertNoErr(t, err)
+
+	cc, err := clients.CloudAndClient()
+	th.AssertNoErr(t, err)
+
+	t.Log("Creating instance")
+
+	// Create MySql RDSv3 instance
+	rds := CreateMySqlRDS(t, client, cc.RegionName)
+	t.Cleanup(func() { DeleteRDS(t, client, rds.Id) })
+
+	upgradeOpts := instances.UpgradeDbVersionOpts{
+		InstanceId: rds.Id,
+		Delay:      false,
+	}
+
+	upgradeResp, err := instances.UpgradeDbVersion(client, upgradeOpts)
+	th.AssertNoErr(t, err)
+
+	_ = instances.WaitForJobCompleted(client, 600, *upgradeResp)
+}
+
+func TestRdsPrivateDomainName(t *testing.T) {
+	if os.Getenv("RUN_RDS_LIFECYCLE") == "" {
+		t.Skip("too slow to run in zuul")
+	}
+	rdsId := os.Getenv("OS_RDS_ID")
+	if rdsId == "" {
+		t.Skip("OS_RDS_ID env var required for the test is missing")
+	}
+
+	client, err := clients.NewRdsV3()
+	th.AssertNoErr(t, err)
+
+	dnsName := tools.RandomString("testaccdomain", 4)
+	modifyOpts := instances.ModifyPrivateDomainNameOpts{
+		InstanceId: rdsId,
+		DnsName:    dnsName,
+	}
+	modifyResp, err := instances.ModifyPrivateDomainName(client, modifyOpts)
+	th.AssertNoErr(t, err)
+
+	_ = instances.WaitForJobCompleted(client, 600, *modifyResp)
+
+	domain, err := instances.GetPrivateDomainName(client, rdsId, instances.GetPrivateDomainNameParams{
+		DnsType: "private",
+	})
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, "private", domain.DnsType)
+	th.AssertEquals(t, dnsName, strings.Split(domain.DnsName, ".")[0])
 }

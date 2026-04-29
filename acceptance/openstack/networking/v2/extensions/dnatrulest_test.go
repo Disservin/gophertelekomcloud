@@ -37,6 +37,7 @@ func TestDnatRuleLifeCycle(t *testing.T) {
 		FloatingIpID:        elasticIp.ID,
 		ExternalServicePort: &allServicePorts,
 		Protocol:            "any",
+		Description:         "test description",
 	}
 	dnatRule, err := dnatrules.Create(client, createDCOpts)
 	th.AssertNoErr(t, err)
@@ -67,7 +68,7 @@ func TestDnatRuleLifeCycle(t *testing.T) {
 
 		type portWithExt struct {
 			ports.Port
-			portsecurity.PortSecurityExt
+			PortSecurity portsecurity.PortSecurityExt
 		}
 
 		var allPorts []portWithExt
@@ -107,6 +108,7 @@ func TestDnatRuleLifeCycle(t *testing.T) {
 	newDnatRule, err := dnatrules.Get(client, dnatRule.ID)
 	th.AssertNoErr(t, err)
 	th.AssertEquals(t, createDCOpts.NatGatewayID, newDnatRule.NatGatewayId)
+	th.AssertEquals(t, createDCOpts.Description, newDnatRule.Description)
 
 	t.Logf("Attempting to list DNAT rules")
 	listRules, err := dnatrules.List(client, dnatrules.ListOpts{})

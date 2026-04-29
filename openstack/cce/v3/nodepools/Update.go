@@ -24,18 +24,11 @@ type UpdateMetaData struct {
 // UpdateSpec describes Node pools update specification
 type UpdateSpec struct {
 	// Node template
-	NodeTemplate UpdateNodeTemplate `json:"nodeTemplate" required:"true"`
+	NodeTemplate nodes.Spec `json:"nodeTemplate" required:"true"`
 	// Initial number of expected nodes
 	InitialNodeCount int `json:"initialNodeCount" required:"true"`
 	// Auto scaling parameters
 	Autoscaling UpdateAutoscalingSpec `json:"autoscaling,omitempty"`
-}
-
-type UpdateNodeTemplate struct {
-	// Tag of a Kubernetes node, key value pair format
-	K8sTags map[string]string `json:"k8sTags,omitempty"`
-	// taints to created nodes to configure anti-affinity
-	Taints []nodes.TaintSpec `json:"taints,omitempty"`
 }
 
 type UpdateAutoscalingSpec struct {

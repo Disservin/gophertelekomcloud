@@ -624,6 +624,17 @@ func NewCESClient(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (
 	return sc, err
 }
 
+// NewCESV2 creates a ServiceClient that may be used to access the CES v2 API.
+func NewCESV2(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
+	sc, err := initClientOpts(client, eo, "volumev2")
+	if err != nil {
+		return nil, err
+	}
+	sc.Endpoint = strings.Replace(sc.Endpoint, "evs", "ces", 1)
+	sc.ResourceBase = sc.Endpoint
+	return sc, err
+}
+
 // NewComputeV1 creates a ServiceClient that may be used with the v1 compute
 // package.
 func NewComputeV1(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
@@ -692,6 +703,11 @@ func NewVpcV3(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*gol
 // NewNatV2 creates a ServiceClient that may be used with the v2 nat package.
 func NewNatV2(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
 	return initClientOpts(client, eo, "nat")
+}
+
+// NewNatV3 creates a ServiceClient that may be used with the v3 nat package.
+func NewNatV3(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
+	return initClientOpts(client, eo, "natv3")
 }
 
 // NewMapReduceV1 creates a ServiceClient that may be used with the v1 MapReduce service.
@@ -767,15 +783,6 @@ func NewDCSServiceV2(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts
 // NewDDSServiceV3 creates a ServiceClient that may be used to access the Document Database Service.
 func NewDDSServiceV3(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
 	sc, err := initClientOpts(client, eo, "ddsv3")
-	return sc, err
-}
-
-func NewDISServiceV2(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
-	sc, err := initClientOpts(client, eo, "dis")
-	if err != nil {
-		return nil, err
-	}
-	sc.ResourceBase = sc.Endpoint + "v2/" + client.ProjectID + "/"
 	return sc, err
 }
 
@@ -1036,6 +1043,25 @@ func NewGaussDBV3(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (
 	return sc, err
 }
 
+func NewTaurusDBV3(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
+	sc, err := initCommonServiceClient(client, eo, "gaussdb-mysql", "v3")
+	return sc, err
+}
+
+func NewGeminiDBV3(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
+	return initClientOpts(client, eo, "geminidb")
+}
+
+func NewGeminiDBV3Spec(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
+	sc, err := initClientOpts(client, eo, "geminidb")
+	if err != nil {
+		return nil, err
+	}
+	sc.Endpoint = strings.Replace(sc.Endpoint, "v3", "v3.1", 1)
+	sc.ResourceBase = sc.Endpoint
+	return sc, err
+}
+
 func NewDataArtsV1(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
 	return initCommonServiceClient(client, eo, "dayu-dlf", "v1")
 }
@@ -1095,4 +1121,9 @@ func NewCCINetworkServiceV2(client *golangsdk.ProviderClient, eo golangsdk.Endpo
 	}
 	sc.ResourceBase = strings.Replace(sc.Endpoint+"apis/yangtse/v2/", "cce", "cci", 1)
 	return sc, nil
+}
+
+// NewASMV1 creates a ServiceClient that may be used to access the ASM service.
+func NewASMV1(client *golangsdk.ProviderClient, eo golangsdk.EndpointOpts) (*golangsdk.ServiceClient, error) {
+	return initClientOpts(client, eo, "asmv1")
 }
